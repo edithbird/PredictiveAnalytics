@@ -1,0 +1,50 @@
+---
+title: "Susan Collins"
+author: "Contributions"
+date: "January 30, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+library(knitr)
+library(pander)
+library(dplyr)
+```
+
+##[All Contributors 2015-6](http://fec.gov/fecviewer/CandCmteTransaction.do)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+Susan <- read.csv("SusanCollins.csv", header = TRUE, stringsAsFactors = FALSE, skip = 7)
+
+kable(Susan)
+
+
+```
+
+##Maine Contributors 2015-6
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+kable(Susan %>% filter(State == "ME"))
+```
+
+##[Maine, 2013-4, contributions over $500](http://fec.gov/disclosurehs/HSContTran.do)
+
+```{r}
+Susan2 <- read.csv("SusanCollins2.csv", header = TRUE, stringsAsFactors = FALSE)
+kable(Susan2 %>% filter(State == "ME", Amount > 500) %>% arrange(desc(Amount)))
+
+```
+
+
+##Same list, 2013-4, arranged alphabetically by Contributor, because some people contributed numerous times
+```{r}
+kable(Susan2 %>% filter(State == "ME"))
+```
+
