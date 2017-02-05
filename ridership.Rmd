@@ -1,0 +1,135 @@
+---
+title: "ridership"
+author: "Christine Iyer"
+date: "February 4, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(forecast)
+```
+
+#Read in Data
+```{r}
+ridership <- read.csv("Amtrak.csv")
+head(ridership)
+```
+
+#Convert factor to date and plot the data
+```{r}
+str(ridership)
+ridership$Month <- as.character(as.Date(ridership$Month, format = "%m/%d/%Y"))
+head(ridership)
+```
+
+```{r}
+ridership.ts <- ts(ridership$Ridership_in_thousands, start = c(1991, 1), end = 2004, 3, freq = 12)
+plot(ridership.ts, xlab = "Time", ylab = "Ridership", ylim = c(1300, 2200), bty = "l")
+
+
+
+```
+
+#Overlaid polynomial trend line
+```{r}
+ridership.lm <- tslm(ridership.ts ~ trend + I(trend^2))
+par(mfrow = c(2,1))
+plot(ridership.ts, xlab = "Time", ylab = "Ridership", ylim = c(1300, 2300), bty = "l")
+lines(ridership.lm$fitted, lwd = 2)
+ridership.ts.zoom <- window(ridership.ts, start = c(1997, 1), end = c(2000, 12))
+#zoom
+
+```
+
+#Zoom into 4 years of data
+```{r}
+plot(ridership.ts.zoom, xlab = "Time", ylab = "Ridership", ylim = c(1300, 2300), bty = "l")
+```
+
+
+  
+
+
+First3 <- window(ridership.ts, 1991, c(1994, 12))
+plot(First3, xlab = "Time", ylab = "Ridership", ylim = c(1300, 2200), bty = "l" )
+Last4 <- window(ridership.ts, 1997, c(2000, 12))
+plot(Last4, xlab = "Time", ylab = "Ridership", ylim = c(1300, 2200), bty = "l" )
+
+
+#Forecasts in the validation period from a quadratic trend model estimated from the training period
+
+
+```{r}
+nValid <- 36
+nTrain <- length(ridership.ts) - nValid 
+train.ts <- window(ridership.ts, start = c(1991, 1), end = c(1991, nTrain)) 
+valid.ts <- window(ridership.ts, start = c(1991, nTrain + 1), end = c(1991, nTrain + nValid)) 
+ridership.lm <- tslm(train.ts ~ trend + I(trend^2)) 
+ridership.lm.pred <- forecast(ridership.lm, h = nValid, level = 0) 
+plot(ridership.lm.pred, ylim = c(1300, 2600), ylab = "Ridership", xlab = "Time", bty = "l", xaxt = "n", xlim = c(1991,2006.25), main ="", flty = 2) 
+axis(1, at = seq(1991, 2006, 1), labels = format(seq(1991, 2006, 1))) 
+lines(ridership.lm$fitted, lwd = 2) 
+lines(valid.ts)
+```
+
+#Computing predictive measures
+```{r}
+accuracy(ridership.lm.pred$mean, valid.ts)
+```
+
+#Calculating residuals
+
+```{r}
+names(ridership.lm.pred)
+ridership.lm.pred$residuals
+valid.ts - ridership.lm.pred$mean
+```
+
+#Histogram of residuals
+```{r}
+hist(ridership.lm.pred$residuals, ylab = "Frequency", xlab = "Forecast Error", bty = "l", main = "")
+```
+
+#computing the predictive measures for rollforward one-month-ahead forecasts in Table 3.3
+ mean(abs(error)) sqrt(mean(error^2))
+
+
+```{r}
+fixed.nValid <- 36
+fixed.nTrain <- length(ridership.ts) - fixed.nValid
+stepsAhead <- 1
+error <- rep(0, fixed.nValid - stepsAhead + 1)
+percent.error <- rep(0, fixed.nValid - stepsAhead + 1)
+
+
+for(j in fixed.nTrain:(fixed.nTrain + fixed.nValid - stepsAhead)) { 
+  train.ts <- window(ridership.ts, start = c(1991, 1), end = c(1991, j)) 
+  
+  valid.ts <- window(ridership.ts, start = c(1991, j + stepsAhead), end = c(1991, j + stepsAhead)) 
+  
+  naive.pred <- naive(train.ts, h = stepsAhead) 
+  error[j - fixed.nTrain + 1] <- valid.ts - naive.pred$mean[stepsAhead] 
+  percent.error[j - fixed.nTrain + 1] <- error[j - fixed.nTrain + 1]/ valid.ts }
+mean(abs(error)) 
+sqrt(mean(error^2)) 
+mean(abs(percent.error))
+```
+
+#Computation of naive and seasonal naive forecast and their predictive measures
+```{r}
+fixed.nValid <- 36
+fixed.nTrain <- length(ridership.ts) - fixed.nValid
+train.ts <- window(ridership.ts, start = c(1991,1), end = c(1991, fixed.nTrain))
+valid.ts <- window(ridership.ts, start = c(1991, fixed.nTrain + 1), 
+                   end = c(1991, fixed.nTrain + fixed.nValid))
+naive.pred <- naive(train.ts, h = fixed.nValid)
+snaive.pred <- snaive(train.ts, h = fixed.nValid)
+accuracy(naive.pred, valid.ts)
+accuracy(snaive.pred, valid.ts)
+
+```
+
